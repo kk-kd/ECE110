@@ -18,7 +18,7 @@ void setup() {
 void loop() {
   if(digitalRead(pb)) {       // If the pushbutton is pressed
     char outgoing = 'P'; 
-    Serial2.print(outgoing);
+    Serial2.print(outgoing);  // Send a character 'P'
     digitalWrite(tx, HIGH);   // LED lights up for transimission
     Serial.println(outgoing); // Also indicate in the local Serial window
   }
