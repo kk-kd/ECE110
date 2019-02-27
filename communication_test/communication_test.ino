@@ -1,6 +1,3 @@
-#define Rx 16
-#define Tx 17
-
 int pb = 7;
 int tx = 2;
 int rx = 5;
@@ -21,11 +18,14 @@ void loop() {
     Serial2.print(outgoing);  // Send a character 'P'
     digitalWrite(tx, HIGH);   // LED lights up for transimission
     Serial.println(outgoing); // Also indicate in the local Serial window
+    delay(500);
   }
   
   if(Serial2.available()) {   // If a character is received
-    Serial2.read();
-    digitalWrite(rx, HIGH);    // LED lights up for receiving
+    char ingoing = Serial2.read();
+    digitalWrite(rx, HIGH); // LED lights up for receiving
+    Serial.println(ingoing);
+    delay(500);
   }
   
   delay(50);  // Delay for short time
