@@ -11,29 +11,31 @@ Servo servoRight;
 int threshold = 100;                           // < threshold (0) for white, > threshold (1) for black
 int binary[4] = {0, 0, 0, 0};                  // binary numbers for each sensor read
 int code = 1111;                               // integrated binary read
-int precode = code;                            // Tslast different binary read
-int was_black  = 0;                           
-int sampling_t = 10;
+int precode = code;                            // TEST: last different binary read
+int was_black  = 0;                            // was the last check black
+int sampling_t = 10;                           // period
 
 void setup() {
   tone(4, 3000, 1000);                       // Play tone for 1 second
   delay(1000);                               // Delay to finish tone
 
-  Serial.begin(9600
+  Serial.begin(9600);
   servoLeft.attach(11);                      // Attach left signal to pin 11
   servoRight.attach(12);                     // Attach right signal to pin 12
 }
 
 void loop() {
-  convert_binary();   
-  
+  convert_binary();                         // convert readings into a binary code 
+
+//  TEST
 //  Serial.println(binary[0]); 
 //  Serial.println(binary[1]); 
 //  Serial.println(binary[2]); 
 //  Serial.println(binary[3]);
 
-  code = binary[0] * 1000 + binary[1] * 100 + binary[2] * 10 + binary[3];
+  code = binary[0] * 1000 + binary[1] * 100 + binary[2] * 10 + binary[3]; // convert to an integer
 
+  // TEST: update 
   if (code != precode) {
     Serial.println(code);
     precode = code;
@@ -46,7 +48,7 @@ void loop() {
 /**
  * Robot move under differnet conditions
  * Note: 1500, 1500 stops the robot 
- *       1700, 1300 robot moves forward
+ *       1600, 1600 robot moves forward full speed
  */
 void robot_move(int code){
    switch(code) {
@@ -58,9 +60,6 @@ void robot_move(int code){
       break;
     case 1110:  // left corner
       simple_move(1400, 1650);
-//      delay(sampling_t * 10);
-//      simple_move(1450, 1450);
-//      delay(sampling_t *2);
       break;
     case 100:  // slight left 
       simple_move(1600, 1600);
@@ -73,9 +72,6 @@ void robot_move(int code){
       break;
     case 111:  // right corner 
       simple_move(1650, 1400);
-//      delay(sampling_t * 10);
-//      simple_move(1450, 1450);
-//      delay(sampling_t *2);
       break;
     case 11:  // moving right 
       simple_move(1600, 1500);
@@ -86,7 +82,7 @@ void robot_move(int code){
     case 1111:  // stop
       if (was_black) {
         simple_move(1600, 1600);
-        delay(50);
+        delay(150);
         was_black = 0;
       } else {
         simple_move(1500, 1500);
