@@ -1,6 +1,6 @@
 int pb = 7;
-int tx = 2;
-int rx = 5;
+int tx = 3;
+int rx = 4;
 
 void setup() {
   pinMode(pb, INPUT);  // Push button input
