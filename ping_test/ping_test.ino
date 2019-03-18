@@ -1,8 +1,6 @@
 /**
  * Ping))) Sensor
  */
-
-// this constant won't change. It's the pin number of the sensor's output:
 const int pingPin = 2;
 const int LED = 3;
 
@@ -45,7 +43,7 @@ void loop() {
   Serial.print("cm");
   Serial.println();
 
-  // if Quaffle detected, blink a LED
+  // if Quaffle detected, LED blinks
   if (inches < 10) {                  
     digitalWrite(LED, HIGH);
     delay(50); 

@@ -82,7 +82,7 @@ void robot_move(int code){
     case 1111:  // stop
       if (was_black) {
         simple_move(1600, 1600);
-        delay(150);
+        delay(300);
         was_black = 0;
       } else {
         simple_move(1500, 1500);
@@ -94,10 +94,10 @@ void robot_move(int code){
     case 0:
         simple_move(1450, 1450);
         delay(100);
-//        Serial.println("All 0s");
+        Serial.println("All 0s");
         break;
     default:
-        Serial.println("Warning. Check qtis");
+        Serial.println("Warning! Abnormal input, check qtis");
         break;
   }
 }
@@ -113,10 +113,10 @@ void simple_move(int left, int right) {
 void convert_binary() {
   int rawVals[4];
   
-  rawVals[0] = RCTime(lineSensor2);     //Calls funtion 'RCTime' Request reading from QTI sensor at pin 'linesensor1' saves value in variable 'qti'
-  rawVals[1] = RCTime(lineSensor3);     //Calls funtion 'RCTime' Request reading from QTI sensor at pin 'linesensor1' saves value in variable 'qti'
-  rawVals[2] = RCTime(lineSensor4);     //Calls funtion 'RCTime' Request reading from QTI sensor at pin 'linesensor1' saves value in variable 'qti'
-  rawVals[3] = RCTime(lineSensor5);     //Calls funtion 'RCTime' Request reading from QTI sensor at pin 'linesensor1' saves value in variable 'qti'
+  rawVals[0] = RCTime(lineSensor2);    
+  rawVals[1] = RCTime(lineSensor3);     
+  rawVals[2] = RCTime(lineSensor4);     
+  rawVals[3] = RCTime(lineSensor5);     
   
 //  Serial.println(rawVals[0]);  //output for testing purpose
 //  Serial.println(rawVals[1]); 
