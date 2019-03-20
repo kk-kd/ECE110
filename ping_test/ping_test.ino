@@ -2,17 +2,24 @@
  * Ping))) Sensor
  */
 const int pingPin = 2;
-const int LED = 3;
+const int blue = 44;
+const int red = 45;
+const int green = 46;
 
 void setup() {
   // initialize a LED
-  pinMode(LED, OUTPUT);
+  pinMode(red, OUTPUT);
+  pinMode(blue, OUTPUT);
+  pinMode(green, OUTPUT);
   
   // initialize serial communication:
   Serial.begin(9600);
 }
 
 void loop() {
+  digitalWrite(red, HIGH);
+  digitalWrite(blue, HIGH);
+  digitalWrite(green, HIGH);
   // establish variables for duration of the ping, and the distance result
   // in inches and centimeters:
   long duration, inches, cm;
@@ -31,6 +38,7 @@ void loop() {
   // to the reception of its echo off of an object.
   pinMode(pingPin, INPUT);
   duration = pulseIn(pingPin, HIGH);
+   
 
   // convert the time into a distance
   inches = microsecondsToInches(duration);
@@ -44,10 +52,21 @@ void loop() {
   Serial.println();
 
   // if Quaffle detected, LED blinks
-  if (inches < 10) {                  
-    digitalWrite(LED, HIGH);
-    delay(50); 
-    digitalWrite(LED, LOW);
+  if (inches < 5) {                  
+    digitalWrite(red, LOW);
+    delay(100); 
+    digitalWrite(green, LOW);
+    delay(100); 
+    digitalWrite(red, HIGH);
+    delay(100); 
+    digitalWrite(green, HIGH);
+    digitalWrite(blue, LOW);
+    delay(100); 
+    digitalWrite(red, LOW);
+    delay(100);
+    digitalWrite(red, HIGH);
+    digitalWrite(blue, HIGH);
+    digitalWrite(green, HIGH);
   }
   
   delay(100);

@@ -16,26 +16,47 @@ int precode = code;                            // TEST: last different binary re
 int was_black  = 0;                            // was the last check black
 int sampling_t = 10;                           // period
 
-void setup() {
-  tone(4, 3000, 1000);                       // Play tone for 1 second
-  delay(1000);                               // Delay to finish tone
+const int pingPin = 2;
+const int blue = 44;
+const int red = 45;
+const int green = 46;
+
+int pb = 7;
+int tx = 3;
+int rx = 4;
+
+void setup() {                 
+  pinMode(red, OUTPUT);
+  pinMode(blue, OUTPUT);
+  pinMode(green, OUTPUT);                      // initialize a LED
+
+  digitalWrite(red, HIGH);
+  digitalWrite(blue, HIGH);
+  digitalWrite(green, HIGH);
+  
+  pinMode(pb, INPUT);                        // Push button input
+  pinMode(tx, OUTPUT);                       // Transmit LED
+  pinMode(rx, OUTPUT);                       // Receive LED
 
   Serial.begin(9600);
+  Serial2.begin(9600);
+ 
   servoLeft.attach(11);                      // Attach left signal to pin 11
   servoRight.attach(12);                     // Attach right signal to pin 12
+   
+  delay(500);
 }
 
 void loop() {
   if (black_time == 6) {
     servoLeft.detach();  
-    servoRight.detach();  //detach servos after reaching the end 
+    servoRight.detach();    //detach servos after reaching the end 
 
-    delay(10000);
-    
-    servoLeft.attach(11);
-    servoRight.attach(12);
-    black_time = 0;  //re-attach and reset the counter
+    while(true) {
+      did_receive();
+    }
   }
+  
   convert_binary();                         // convert readings into a binary code 
 
 //  TEST
@@ -97,11 +118,11 @@ void robot_move(int code){
         was_black = 0;
       } else {
         simple_move(1500, 1500);
+        detectQuaffle();
         delay(2000);
         simple_move(1600, 1600);
         was_black = 1;
         black_time ++;
-        Serial.print(black_time);
       }
       break;
     case 0:
@@ -112,6 +133,26 @@ void robot_move(int code){
     default:
         Serial.println("Warning! Abnormal input, check qtis");
         break;
+  }
+}
+
+void send_character() {
+    char outgoing = 'l'; 
+    Serial2.print(outgoing);  // Send a character 'P'
+    digitalWrite(tx, HIGH);   // LED lights up for transimission
+    Serial.println(outgoing); // Also indicate in the local Serial window
+    delay(500);
+    digitalWrite(tx, LOW);
+}
+
+void did_receive() {
+    if(Serial2.available()) {   // If a character is received
+    char ingoing = Serial2.read();
+    digitalWrite(rx, HIGH); // LED lights up for receiving
+    Serial.println(ingoing);
+    delay(100);
+    digitalWrite(rx, LOW);
+    
   }
 }
 
@@ -146,6 +187,67 @@ void convert_binary() {
   
 }
 
+void detectQuaffle() {
+  long duration, inches, cm;
+  
+  // The PING))) is triggered by a HIGH pulse of 2 or more microseconds.
+  // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
+  pinMode(pingPin, OUTPUT);
+  digitalWrite(pingPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(pingPin, HIGH);
+  delayMicroseconds(5);
+  digitalWrite(pingPin, LOW);
+
+  // The same pin is used to read the signal from the PING))): a HIGH pulse
+  // whose duration is the time (in microseconds) from the sending of the ping
+  // to the reception of its echo off of an object.
+  pinMode(pingPin, INPUT);
+  duration = pulseIn(pingPin, HIGH);
+
+  // convert the time into a distance
+  inches = microsecondsToInches(duration);
+  cm = microsecondsToCentimeters(duration);
+
+  // print out the distance detected
+  Serial.print(inches);
+  Serial.print("in, ");
+  Serial.print(cm);
+  Serial.print("cm");
+  Serial.println();
+
+  // if Quaffle detected, LED blinks
+  if (inches < 10) { 
+    send_character();                 
+    lightup();
+  } 
+}
+
+long microsecondsToInches(long microseconds) {
+  return microseconds / 74 / 2;
+}
+long microsecondsToCentimeters(long microseconds) {
+  return microseconds / 29 / 2;
+}
+
+void lightup(){
+  for (int i = 0; i < 5; i++){
+    digitalWrite(red, LOW);
+    delay(100); 
+    digitalWrite(green, LOW);
+    delay(100); 
+    digitalWrite(red, HIGH);
+    delay(100); 
+    digitalWrite(green, HIGH);
+    digitalWrite(blue, LOW);
+    delay(100); 
+    digitalWrite(red, LOW);
+    delay(100);
+    digitalWrite(red, HIGH);
+    digitalWrite(blue, HIGH);
+    digitalWrite(green, HIGH);
+  }
+}
 /**
  * Process the sensor discharging time
  */
