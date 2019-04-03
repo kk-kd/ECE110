@@ -51,9 +51,7 @@ void setup() {
   Serial2.begin(9600);
 
   // Servos setup 
-  servoLeft.attach(11);                      // Attach left signal to pin 11
-  servoRight.attach(12);                     // Attach right signal to pin 12
-   
+  attach_motors();
   delay(500);
 }
 
@@ -144,8 +142,12 @@ void robot_move(int code){
         was_black = 0;
       } else {													// if reads a cross
         simple_move(1500, 1500);				// stop
+        delay(1000);
+        detach_motors();
         detectQuaffle(); 								// detect whether a Quaffle is present
-        delay(2000);
+        delay(1000);
+        attach_motors();
+        delay(1000);
         simple_move(1600, 1600);				// keep moving
         was_black = 1;
         black_time ++;									// record the # of crosses
@@ -194,7 +196,9 @@ void detectQuaffle() {
   
   // if Quaffle detected, send a signal and LED blinks
   if (inches < 10) { 
-    send_character('R');                 
+    send_character('R'); 
+    send_character('K'); 
+    delay(500);              
     lightup();
   } else {
     send_character('N');
@@ -223,7 +227,7 @@ void simple_move(int left, int right) {
  *										 LOW  - ON
  */
 void lightup(){
-  for (int i = 0; i < 5; i++){
+  for (int i = 0; i < 3; i++){
     digitalWrite(red, LOW);					// red	
     delay(100); 
     digitalWrite(green, LOW);				// yellow
@@ -264,7 +268,7 @@ long RCTime(int sensorIn){
  */
 void send_character(char x) {
     char outgoing = x; 
-    Serial2.print(outgoing);  // Send a character 'P'
+    Serial2.print(outgoing);  // Send a character 
     digitalWrite(tx, HIGH);   // LED lights up for transimission
     Serial.println(outgoing); // Also indicate in the local Serial window
     delay(500);
@@ -295,4 +299,14 @@ void debug_output() {
 	    Serial.print("qti code: ");
 	    Serial.println(precode);
   	}
+}
+
+void detach_motors() {
+  servoLeft.detach();
+  servoRight.detach();
+}
+
+void attach_motors() {
+  servoLeft.attach(11);                      // Attach left signal to pin 11
+  servoRight.attach(12);                     // Attach right signal to pin 12
 }
