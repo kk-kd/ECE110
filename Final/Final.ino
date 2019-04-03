@@ -194,9 +194,11 @@ void detectQuaffle() {
   
   // if Quaffle detected, send a signal and LED blinks
   if (inches < 10) { 
-    send_character();                 
+    send_character('R');                 
     lightup();
-  } 
+  } else {
+    send_character('N');
+  }
 }
 
 /* Secondary helper methods start here */
@@ -260,8 +262,8 @@ long RCTime(int sensorIn){
 /**
  * Send a 'R' to the sensory bot
  */
-void send_character() {
-    char outgoing = 'R'; 
+void send_character(char x) {
+    char outgoing = x; 
     Serial2.print(outgoing);  // Send a character 'P'
     digitalWrite(tx, HIGH);   // LED lights up for transimission
     Serial.println(outgoing); // Also indicate in the local Serial window
@@ -277,7 +279,7 @@ void did_receive() {
     char ingoing = Serial2.read();
     digitalWrite(rx, HIGH); 					// LED lights up for receiving
     Serial.println(ingoing);					// Print on the serial monitor
-    delay(100);
+    delay(500);
     digitalWrite(rx, LOW);						// LED off
     
   }
