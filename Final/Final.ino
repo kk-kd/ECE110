@@ -31,6 +31,7 @@ int precode = code;                            // TEST: last different binary re
 int was_black  = 0;                            // was the last check black
 
 bool DEBUG = false;
+int  score = 0;
 
 void setup() { 
   // initialize LEDs                
@@ -195,14 +196,38 @@ void detectQuaffle() {
   }
   
   // if Quaffle detected, send a signal and LED blinks
-  if (inches < 10) { 
-    send_character('R'); 
-    send_character('K'); 
-    delay(500);              
-    lightup();
-  } else {
-    send_character('N');
+  do_communication(inches);
+}
+
+void do_communication(long inches){
+  char outgoing = 'b';
+  // receive
+  char ingoing = did_receive();
+  Serial.print(ingoing);
+  while(!(ingoing == 'R' || ingoing == 'G')) {
+    ingoing = did_receive();
+    Serial.print(ingoing);
   }
+
+ 
+  // send 
+  if (inches < 10) { 
+      outgoing = 'Y';
+      delay(500);              
+      lightup();
+    } else {
+      outgoing = 'N';
+    } 
+    
+  for (int i = 0; i < 5; i++) {
+    send_character(outgoing);
+  }
+
+  if (outgoing == 'Y' && ingoing == 'R') {
+    score += 10;
+  }
+
+  Serial.print(score);
 }
 
 /* Secondary helper methods start here */
@@ -278,15 +303,16 @@ void send_character(char x) {
 /**
  * Light up a LED and print if receives anything
  */
-void did_receive() {
+char did_receive() {
+    char ingoing = 'a';
     if(Serial2.available()) {   			// If a character is received
-    char ingoing = Serial2.read();
+    ingoing = Serial2.read();
     digitalWrite(rx, HIGH); 					// LED lights up for receiving
     Serial.println(ingoing);					// Print on the serial monitor
     delay(500);
     digitalWrite(rx, LOW);						// LED off
-    
   }
+   return ingoing;
 }
 
 /**
