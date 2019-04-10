@@ -37,7 +37,7 @@ bool DEBUG = false;
 int  score = 0;
 int  pre_score = score;
 
-int fs[5] = {0, 0, 0, 0, 0};
+int fs[5] = {0, 0, 0, 0, 0};      
 int final_score = 0;
 
 void setup() { 
@@ -68,7 +68,7 @@ void setup() {
   delay(5);
   serialLCD.print("Hello Driver!");
   
-  //  playsound();
+   playsound();
 
   // Servos setup 
   attach_motors();
@@ -233,7 +233,7 @@ void detectQuaffle() {
   	Serial.print("in, ");
   }
   
-  // if Quaffle detected, send a signal and LED blinks
+  // store the quaffle info in an array
   if (inches < 10) { 
     fs[black_time] = 1;
     delay(500);              
@@ -373,22 +373,24 @@ void playsound() {
   serialLCD.write(229); //F#
 }
 
+// encode quaffle information and send it to Beater 2
 char code_score() {
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 5; i++) {              // convert the array into a binary number
     int a = fs[i];
     if (i == 0) final_score += fs[i];
     for (int j = 0; j < i; j++){
       a = a * 2;
     }
     final_score += a;
-    Serial.println(pow(2,i));
     Serial.println(final_score);
   }
+
   Serial.println(final_score);
   Serial.println(char(final_score + 65));
-  return char(final_score + 65);
+  return char(final_score + 65);              // return the char should be sent
 }
 
+// print quaffle information
 void print_fs(){
   for (int i = 0; i < 5; ++i)
   {
