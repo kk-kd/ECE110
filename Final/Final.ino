@@ -1,9 +1,11 @@
 #include <Servo.h>  
+#include <SoftwareSerial.h>
 
 #define lineSensor2 49  // far left
 #define lineSensor3 51  // near left
 #define lineSensor4 53  // near right
 #define lineSensor5 52  // far right
+#define LCDTx 14        // LCD
 
 /**
  * Port# define
@@ -17,6 +19,7 @@ int pb = 7;
 int tx = 3;
 int rx = 4;
 
+SoftwareSerial serialLCD = SoftwareSerial(255, LCDTx); // Setup LCD screen
 Servo servoLeft;
 Servo servoRight;
 
@@ -31,6 +34,11 @@ int precode = code;                            // TEST: last different binary re
 int was_black  = 0;                            // was the last check black
 
 bool DEBUG = false;
+int  score = 0;
+int  pre_score = score;
+
+int fs[5] = {0, 0, 0, 0, 0};
+int final_score = 0;
 
 void setup() { 
   // initialize LEDs                
@@ -49,6 +57,18 @@ void setup() {
 
   Serial.begin(9600);
   Serial2.begin(9600);
+  
+  // LCD Setup
+  pinMode(LCDTx, OUTPUT);
+  digitalWrite(LCDTx, HIGH);
+  serialLCD.begin(9600);
+
+  serialLCD.write(12);
+  serialLCD.write(18);
+  delay(5);
+  serialLCD.print("Hello Driver!");
+  
+  //  playsound();
 
   // Servos setup 
   attach_motors();
@@ -56,9 +76,28 @@ void setup() {
 }
 
 void loop() {
-  if (black_time == 6) { 					// At the end of the line 
+  if (black_time == 5) { 					// At the end of the line 
     servoLeft.detach();  
-    servoRight.detach();    		  // Detach servos after reaching the last cross 
+    servoRight.detach();    		  // Detach servos after reaching the last cross
+
+    char ingoing = did_receive();
+    char outgoing = code_score();
+    Serial.println('b');
+    while(!isDigit(ingoing)) {
+      Serial.print("ingoing: ");
+      Serial.println(ingoing);
+      Serial.print("outgoing: ");
+    	Serial2.print(outgoing);
+      Serial.print(outgoing);
+		  char ingoing = did_receive();
+    } 
+
+    Serial.println("done: ");
+    Serial.println(ingoing*10);
+
+    serialLCD.write(12);
+    serialLCD.print("Current Score:");
+    serialLCD.print(ingoing * 10);
 
     while(true) {
       did_receive();						  // Wait to receive a signal from anthoer bot
@@ -196,13 +235,14 @@ void detectQuaffle() {
   
   // if Quaffle detected, send a signal and LED blinks
   if (inches < 10) { 
-    send_character('R'); 
-    send_character('K'); 
+    fs[black_time] = 1;
     delay(500);              
     lightup();
   } else {
-    send_character('N');
+    fs[black_time] = 0;
   }
+
+  print_fs();
 }
 
 /* Secondary helper methods start here */
@@ -278,15 +318,16 @@ void send_character(char x) {
 /**
  * Light up a LED and print if receives anything
  */
-void did_receive() {
+char did_receive() {
     if(Serial2.available()) {   			// If a character is received
     char ingoing = Serial2.read();
     digitalWrite(rx, HIGH); 					// LED lights up for receiving
     Serial.println(ingoing);					// Print on the serial monitor
     delay(500);
     digitalWrite(rx, LOW);						// LED off
-    
+    return ingoing;
   }
+  return;
 }
 
 /**
@@ -309,4 +350,40 @@ void detach_motors() {
 void attach_motors() {
   servoLeft.attach(11);                      // Attach left signal to pin 11
   servoRight.attach(12);                     // Attach right signal to pin 12
+}
+
+
+void playsound() {
+  serialLCD.write(216); //A = 440
+  serialLCD.write(212); //1/4 note
+  serialLCD.write(222); //B
+  serialLCD.write(227); //E
+  serialLCD.write(211); //1/8 note
+  serialLCD.write(230); //G
+  serialLCD.write(212); //1/4 note
+  serialLCD.write(229); //F#
+  serialLCD.write(213); //1/2 note
+  serialLCD.write(227); //E
+  serialLCD.write(212); //1/4 note
+  serialLCD.write(217); //A=880
+  serialLCD.write(222); //B
+  serialLCD.write(213); //1/2 note
+  serialLCD.write(220); //A
+  serialLCD.write(216); //A=440
+  serialLCD.write(229); //F#
+}
+
+char code_score() {
+  for (int i = 0; i < 5; i++) {
+    final_score += fs[i] * pow(2, i);
+  }
+  return char(final_score + 65);
+}
+
+void print_fs(){
+  for (int i = 0; i < 5; ++i)
+  {
+    Serial.print(fs[i]);
+  }
+  Serial.println();
 }
