@@ -84,20 +84,20 @@ void loop() {
     char outgoing = code_score();
     Serial.println('b');
     while(!isDigit(ingoing)) {
-      Serial.print("ingoing: ");
-      Serial.println(ingoing);
+       
       Serial.print("outgoing: ");
     	Serial2.print(outgoing);
       Serial.print(outgoing);
-		  char ingoing = did_receive();
+      Serial.print("ingoing: ");
+		  ingoing = did_receive(); 
     } 
 
     Serial.println("done: ");
-    Serial.println(ingoing*10);
+    Serial.println(ingoing);
 
     serialLCD.write(12);
     serialLCD.print("Current Score:");
-    serialLCD.print(ingoing * 10);
+    serialLCD.print(int(ingoing) * 10);
 
     while(true) {
       did_receive();						  // Wait to receive a signal from anthoer bot
@@ -375,8 +375,17 @@ void playsound() {
 
 char code_score() {
   for (int i = 0; i < 5; i++) {
-    final_score += fs[i] * pow(2, i);
+    int a = fs[i];
+    if (i == 0) final_score += fs[i];
+    for (int j = 0; j < i; j++){
+      a = a * 2;
+    }
+    final_score += a;
+    Serial.println(pow(2,i));
+    Serial.println(final_score);
   }
+  Serial.println(final_score);
+  Serial.println(char(final_score + 65));
   return char(final_score + 65);
 }
 
