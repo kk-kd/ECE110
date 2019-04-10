@@ -1,13 +1,13 @@
 #include <Servo.h>  
+#include <SoftwareSerial.h>
 
 #define lineSensor2 49  // far left
 #define lineSensor3 51  // near left
 #define lineSensor4 53  // near right
 #define lineSensor5 52  // far right
+#define LCDTx 14				// LCD
 
-/**
- * Port# define
- */
+// Port# define
 const int pingPin = 2;
 const int blue = 44;
 const int red = 45;
@@ -17,11 +17,20 @@ int pb = 7;
 int tx = 3;
 int rx = 4;
 
+const char gS = '~';		// green 
+const char rS = '*';		// red
+
+const char yS = '?';		// quaffle
+const char nS = '=';		// no quaffle
+const char stopSign = 'x';		//breaker
+
+// Variables define
+SoftwareSerial serialLCD = SoftwareSerial(255, LCDTx); // Setup LCD screen
 Servo servoLeft;
 Servo servoRight;
 
-int black_time = 0;							   // # of crosses has passed
-int sampling_t = 10;                           // period
+int black_time = 0;							               // # of crosses has passed
+int sampling_t = 0;                           // period
 
 int threshold = 100;                           // < threshold (0) for white, > threshold (1) for black
 int binary[4] = {0, 0, 0, 0};                  // binary numbers for each sensor read
@@ -32,6 +41,7 @@ int was_black  = 0;                            // was the last check black
 
 bool DEBUG = false;
 int  score = 0;
+int  pre_score = score;
 
 void setup() { 
   // initialize LEDs                
@@ -47,9 +57,25 @@ void setup() {
   pinMode(pb, INPUT);                        // Push button input
   pinMode(tx, OUTPUT);                       // Transmit LED
   pinMode(rx, OUTPUT);                       // Receive LED
-
+  
   Serial.begin(9600);
   Serial2.begin(9600);
+
+  // LCD Setup
+  pinMode(LCDTx, OUTPUT);
+  digitalWrite(LCDTx, HIGH);
+  serialLCD.begin(9600);
+
+  serialLCD.write(12);
+  serialLCD.write(18);
+  delay(5);
+  serialLCD.print("Hello Driver!");
+  delay(2000);
+  serialLCD.write(12);
+  serialLCD.print("Current Score:");
+  serialLCD.print(score);
+
+//  playsound();
 
   // Servos setup 
   attach_motors();
@@ -57,12 +83,24 @@ void setup() {
 }
 
 void loop() {
-  if (black_time == 6) { 					// At the end of the line 
+  if (black_time == 6) { 					// At the end of the line   
     servoLeft.detach();  
-    servoRight.detach();    		  // Detach servos after reaching the last cross 
+    servoRight.detach();    		  // Detach servos after reaching the last cross
 
+//    while(Serial2.available()) {
+//    char something = Serial2.read();
+//    if (something == stopSign) {
+//      break;
+//      }
+//    }
+
+    char outgoing = score / 10;
     while(true) {
-      did_receive();						  // Wait to receive a signal from anthoer bot
+      send_character(outgoing);
+    }
+
+    while(true) {    						  // Stop
+      did_receive();
     }
   }
   
@@ -74,6 +112,15 @@ void loop() {
   if (DEBUG) {
   	debug_output();
   }
+
+  if (pre_score != score) {
+    serialLCD.write(12);
+    serialLCD.print("Current Score:");
+    serialLCD.print(score);
+
+    pre_score = score;
+   }
+
 
   robot_move(code);
   delay(sampling_t);
@@ -144,7 +191,7 @@ void robot_move(int code){
       } else {													// if reads a cross
         simple_move(1500, 1500);				// stop
         delay(1000);
-        detach_motors();
+        detach_motors();								// detach servos for a higher voltage level
         detectQuaffle(); 								// detect whether a Quaffle is present
         delay(1000);
         attach_motors();
@@ -197,6 +244,12 @@ void detectQuaffle() {
   
   // if Quaffle detected, send a signal and LED blinks
   do_communication(inches);
+  while(Serial2.available()) {
+    char something = Serial2.read();
+    if (something == stopSign) {
+      break;
+    }
+  }
 }
 
 void do_communication(long inches){
@@ -204,26 +257,34 @@ void do_communication(long inches){
   // receive
   char ingoing = did_receive();
   Serial.print(ingoing);
-  while(!(ingoing == 'R' || ingoing == 'G')) {
+  while(!(ingoing == rS || ingoing == gS)) {
     ingoing = did_receive();
-    Serial.print(ingoing);
+    if (ingoing != 'a') {
+      Serial.print(ingoing);
+      }
   }
 
  
   // send 
   if (inches < 10) { 
-      outgoing = 'Y';
+      outgoing = yS;
       delay(500);              
       lightup();
     } else {
-      outgoing = 'N';
+      outgoing = nS;
     } 
     
   for (int i = 0; i < 5; i++) {
     send_character(outgoing);
+    delay(20);
   }
 
-  if (outgoing == 'Y' && ingoing == 'R') {
+  for (int i = 0; i < 5; i++) {
+    send_character(stopSign);
+    delay(20);
+  }
+
+  if (outgoing == yS && ingoing == rS) {
     score += 10;
   }
 
@@ -289,7 +350,7 @@ long RCTime(int sensorIn){
 }
 
 /**
- * Send a 'R' to the sensory bot
+ * Send something to the sensory bot
  */
 void send_character(char x) {
     char outgoing = x; 
@@ -335,4 +396,28 @@ void detach_motors() {
 void attach_motors() {
   servoLeft.attach(11);                      // Attach left signal to pin 11
   servoRight.attach(12);                     // Attach right signal to pin 12
+}
+
+void playsound() {
+    serialLCD.write(216); //A = 440
+  serialLCD.write(212); //1/4 note
+  serialLCD.write(222); //B
+  serialLCD.write(227); //E
+  serialLCD.write(211); //1/8 note
+  serialLCD.write(230); //G
+  serialLCD.write(212); //1/4 note
+  serialLCD.write(229); //F#
+  serialLCD.write(213); //1/2 note
+  serialLCD.write(227); //E
+  serialLCD.write(212); //1/4 note
+  serialLCD.write(217); //A=880
+  serialLCD.write(222); //B
+  serialLCD.write(213); //1/2 note
+  serialLCD.write(220); //A
+  serialLCD.write(216); //A=440
+  serialLCD.write(229); //F#
+}
+
+void send_score_at_end(){
+  
 }
