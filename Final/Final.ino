@@ -23,7 +23,7 @@ SoftwareSerial serialLCD = SoftwareSerial(255, LCDTx); // Setup LCD screen
 Servo servoLeft;
 Servo servoRight;
 
-int black_time = 0;							   // # of crosses has passed
+int black_time = 0;                // # of crosses has passed
 int sampling_t = 10;                           // period
 
 int threshold = 100;                           // < threshold (0) for white, > threshold (1) for black
@@ -37,7 +37,10 @@ bool DEBUG = false;
 int  score = 0;
 int  pre_score = score;
 
-int fs[5] = {0, 0, 0, 0, 0};
+int fs[5] = {0, 0, 0, 0, 0};      
+int group_score_1 = 0;
+int group_score_2 = 0;
+int jack_score = 0;
 int final_score = 0;
 
 void setup() { 
@@ -68,7 +71,7 @@ void setup() {
   delay(5);
   serialLCD.print("Hello Driver!");
   
-  //  playsound();
+   playsound();
 
   // Servos setup 
   attach_motors();
@@ -76,41 +79,57 @@ void setup() {
 }
 
 void loop() {
-  if (black_time == 5) { 					// At the end of the line 
+  if (black_time == 5) {          // At the end of the line 
+
+    simple_move(1450, 1450);      // move backwards, giving space to the seeker
+    delay(2000);
+    simple_move(1500,1500);
+
     servoLeft.detach();  
-    servoRight.detach();    		  // Detach servos after reaching the last cross
+    servoRight.detach();          // Detach servos after reaching the last cross
 
-    char ingoing = did_receive();
-    char outgoing = code_score();
-    Serial.println('b');
-    while(!isDigit(ingoing)) {
-      Serial.print("ingoing: ");
-      Serial.println(ingoing);
-      Serial.print("outgoing: ");
-    	Serial2.print(outgoing);
-      Serial.print(outgoing);
-		  char ingoing = did_receive();
-    } 
+    transmitScores(fs);
+    int** team_scores = receiveScores(fs);
 
-    Serial.println("done: ");
-    Serial.println(ingoing*10);
+    for (int i = 0; i < 5; i++)
+    {
+      for (int j = 0; j < 5; j++)
+      {
+        Serial.print(team_scores[i][j]);
+      }
+
+      Serial.println();
+    }
+    
+    calc_score_1(team_scores); 
+    calc_score_2(team_scores);
+    calc_score_3(team_scores);
+    total_score_calc();
+//
+//    String send_final_score = "g" + final_score;
+//    Serial2.print(send_final_score);
+
+    Serial.print("final_score: ");
+    Serial.println(final_score);
 
     serialLCD.write(12);
-    serialLCD.print("Current Score:");
-    serialLCD.print(ingoing * 10);
-
-    while(true) {
-      did_receive();						  // Wait to receive a signal from anthoer bot
-    }
+    serialLCD.print("Final Score:");
+    serialLCD.print(final_score);
+    serialLCD.write(13);
+    serialLCD.print(group_score_1);
+    serialLCD.print(" ");
+    serialLCD.print(group_score_2);
+    serialLCD.print(" ");
+    serialLCD.print(jack_score);
   }
   
   /* Normal loop starts here */
   convert_binary();                         // convert readings into a binary code 
   code = binary[0] * 1000 + binary[1] * 100 + binary[2] * 10 + binary[3]; // convert to an integer
-  	
+    
   // Print out debug output if necessary
   if (DEBUG) {
-  	debug_output();
+    debug_output();
   }
 
   robot_move(code);
@@ -175,29 +194,29 @@ void robot_move(int code){
       simple_move(1600, 1450);
       break;
     case 1111:  // stop
-      if (was_black) {									// if reads a cross the last time, move forward before reading the next value
+      if (was_black) {                  // if reads a cross the last time, move forward before reading the next value
         simple_move(1600, 1600);
         delay(300);
         was_black = 0;
-      } else {													// if reads a cross
-        simple_move(1500, 1500);				// stop
+      } else {                          // if reads a cross
+        simple_move(1500, 1500);        // stop
         delay(1000);
         detach_motors();
-        detectQuaffle(); 								// detect whether a Quaffle is present
+        detectQuaffle();                // detect whether a Quaffle is present
         delay(1000);
         attach_motors();
         delay(1000);
-        simple_move(1600, 1600);				// keep moving
+        simple_move(1600, 1600);        // keep moving
         was_black = 1;
-        black_time ++;									// record the # of crosses
+        black_time ++;                  // record the # of crosses
       }
       break;
-    case 0:		// the end of a line (for line tracking demo only)														
+    case 0:   // the end of a line (for line tracking demo only)                            
         simple_move(1450, 1450);
         delay(100);
         Serial.println("All 0s");
         break;
-    default:	// abnormal input
+    default:  // abnormal input
         Serial.println("Warning! Abnormal input, check qtis");
         break;
   }
@@ -229,11 +248,11 @@ void detectQuaffle() {
 
   // print out the distance detected
   if (DEBUG) {
-  	Serial.print(inches);
-  	Serial.print("in, ");
+    Serial.print(inches);
+    Serial.print("in, ");
   }
   
-  // if Quaffle detected, send a signal and LED blinks
+  // store the quaffle info in an array
   if (inches < 10) { 
     fs[black_time] = 1;
     delay(500);              
@@ -241,8 +260,6 @@ void detectQuaffle() {
   } else {
     fs[black_time] = 0;
   }
-
-  print_fs();
 }
 
 /* Secondary helper methods start here */
@@ -264,24 +281,24 @@ void simple_move(int left, int right) {
 /**
  * LED labor
  * Note: for this LED, HIGH - OFF
- *										 LOW  - ON
+ *                     LOW  - ON
  */
 void lightup(){
   for (int i = 0; i < 3; i++){
-    digitalWrite(red, LOW);					// red	
+    digitalWrite(red, LOW);         // red  
     delay(100); 
-    digitalWrite(green, LOW);				// yellow
+    digitalWrite(green, LOW);       // yellow
     delay(100); 
-    digitalWrite(red, HIGH);				// green
+    digitalWrite(red, HIGH);        // green
     delay(100); 
-    digitalWrite(green, HIGH);			// off
-    digitalWrite(blue, LOW);				// blue
+    digitalWrite(green, HIGH);      // off
+    digitalWrite(blue, LOW);        // blue
     delay(100); 
-    digitalWrite(red, LOW);					// purple
+    digitalWrite(red, LOW);         // purple
     delay(100);
     digitalWrite(red, HIGH);
     digitalWrite(blue, HIGH);
-    digitalWrite(green, HIGH);			// no pink i am sad DX
+    digitalWrite(green, HIGH);      // no pink i am sad DX
   }
 }
 
@@ -304,42 +321,15 @@ long RCTime(int sensorIn){
 }
 
 /**
- * Send a 'R' to the sensory bot
- */
-void send_character(char x) {
-    char outgoing = x; 
-    Serial2.print(outgoing);  // Send a character 
-    digitalWrite(tx, HIGH);   // LED lights up for transimission
-    Serial.println(outgoing); // Also indicate in the local Serial window
-    delay(500);
-    digitalWrite(tx, LOW);
-}
-
-/**
- * Light up a LED and print if receives anything
- */
-char did_receive() {
-    if(Serial2.available()) {   			// If a character is received
-    char ingoing = Serial2.read();
-    digitalWrite(rx, HIGH); 					// LED lights up for receiving
-    Serial.println(ingoing);					// Print on the serial monitor
-    delay(500);
-    digitalWrite(rx, LOW);						// LED off
-    return ingoing;
-  }
-  return;
-}
-
-/**
  * Print code in debug mode
  */
 void debug_output() {
-	if (code != precode) {
-	    Serial.println(code);
-	    precode = code;
-	    Serial.print("qti code: ");
-	    Serial.println(precode);
-  	}
+  if (code != precode) {
+      Serial.println(code);
+      precode = code;
+      Serial.print("qti code: ");
+      Serial.println(precode);
+    }
 }
 
 void detach_motors() {
@@ -373,17 +363,119 @@ void playsound() {
   serialLCD.write(229); //F#
 }
 
-char code_score() {
-  for (int i = 0; i < 5; i++) {
-    final_score += fs[i] * pow(2, i);
-  }
-  return char(final_score + 65);
-}
-
-void print_fs(){
+// print quaffle information
+void print_teamscore(int* score){
   for (int i = 0; i < 5; ++i)
   {
-    Serial.print(fs[i]);
   }
   Serial.println();
+}
+
+void transmitScores(int score[]) {
+   String message = "c";
+
+   for (int i = 0; i < 5; i++) {
+    message += score[i];
+   }
+   Serial.print(message);
+   //send the message 3 times to be cautious
+   for (int i = 0; i < 1; ++i)
+   {
+     Serial2.print(message);
+   }
+}
+ 
+int** receiveScores(int* your_score) {
+  int count = 1;
+  long start = millis();
+  int team_index = 2;
+  
+  int received[5] = {0, 0, 1, 0, 0};
+ 
+  //array containing the scores for the team
+  int** team_scores = { 0 };
+  team_scores = new int*[5];
+
+  // fill in the array
+  for (int i = 0; i < 5; i++) {
+     team_scores[i] = new int[5];
+      if (i != team_index) {
+          for (int j = 0; j < 5; j++) {
+              team_scores[i][j] = 0;
+          }
+      } else {
+          for (int j = 0; j < 5; j++) {
+              team_scores[i][j] = your_score[j];
+          }
+      }
+  }
+ 
+  //while all scores have yet to be received
+  //or forty seconds have yet to pass
+  while(count < 5 && millis() - start < 40000) {
+ 
+    //If there is at least a message worth of data available
+    if (Serial2.available() >= 6) {
+     
+      //calculate the team index of the message
+      int index = Serial2.read() - 97;
+      
+      //if we read an invalid team # try again
+      if (index < 0 || index >= 5) {
+        continue;
+      }
+      //if we haven't received this teams score yet
+      else if (received[index] == 0) {
+        received[index] = 1;
+         Serial.print(index);
+        for (int i = 0; i < 5; i++) {
+          team_scores[index][i] = Serial2.read() - 48;
+           Serial.print(team_scores[index][i]);
+        }
+
+        Serial.println();
+        count++;
+        Serial.print("Count: ");
+        Serial.println(count);
+      }
+    }
+  }
+
+  Serial.println("out of loop");
+  return team_scores;
+}
+
+void calc_score_1(int** team_score) {
+  for (int i = 0; i < 5; i++)
+  {
+    if (team_score[0][i] == 1 && team_score[1][i] == 1)
+    {
+      group_score_1 += 10;
+    }
+  }
+}
+
+void calc_score_2(int** team_score) {
+  for (int i = 0; i < 5; i++)
+  {
+    if (team_score[2][i] == 1 && team_score[3][i] == 1)
+    {
+      group_score_2 += 10;
+    }
+  }
+}
+
+void calc_score_3(int** team_score) {
+  for (int i = 0; i < 5; i++)
+  {
+    if (team_score[4][i] == 1)
+    {
+      jack_score += 150;
+      break;
+    }
+  }
+}
+
+void total_score_calc() {
+  final_score = group_score_1 + group_score_2 + jack_score;
 }
