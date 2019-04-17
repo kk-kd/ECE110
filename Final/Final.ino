@@ -98,10 +98,6 @@ void loop()
     calc_score_3(team_scores);
     total_score_calc();
 
-// TODO: figure this out
-//    String send_final_score = "g" + final_score;
-//    Serial2.print(send_final_score);
-
     if (DEBUG)
     {
       print_team_scores(team_scores);
